@@ -1,20 +1,25 @@
 import streamlit as st
-import pymysql
+import mysql.connector
 import pandas as pd
 
 # Connect to MySQL database
 def get_connection():
-    return pymysql.connect(
+    return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="12345678",
-        database="redbus",port=3306
+        password="12345678",
+        database="redbus",
+        port=3306
     )
 
 # Function to fetch route names starting with a specific letter, arranged alphabetically
 def fetch_route_names(connection, starting_letter):
     query = "SELECT DISTINCT Route_Name FROM bus_routes WHERE Route_Name LIKE %s ORDER BY Route_Name"
-    route_names = pd.read_sql(query, connection, params=(f"{starting_letter}%",))['Route_Name'].tolist()
+    cursor = connection.cursor()
+    cursor.execute(query, (f"{starting_letter}%",))
+    result = cursor.fetchall()
+    route_names = [row[0] for row in result]
+    cursor.close()
     return route_names
 
 # Function to fetch data from MySQL based on selected Route_Name and price sort order
@@ -25,7 +30,11 @@ def fetch_data(connection, route_name, price_sort_order):
     WHERE Route_Name = %s 
     ORDER BY Star_Rating DESC, Price {}
     """.format(price_sort_order_sql)
-    df = pd.read_sql(query, connection, params=(route_name,))
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(query, (route_name,))
+    result = cursor.fetchall()
+    cursor.close()
+    df = pd.DataFrame(result)
     return df
 
 # Function to filter data based on Star_Rating and Bus_Type
