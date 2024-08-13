@@ -5,22 +5,27 @@ import pandas as pd
 # Connect to MySQL database
 def get_connection():
     return pymysql.connect(
-    host="127.0.0.1",
-    user="root",
-    passwd="12345678",
-    database="redbus")
+        host="127.0.0.1",
+        user="root",
+        passwd="12345678",
+        database="redbus"
+    )
 
 # Function to fetch route names starting with a specific letter, arranged alphabetically
 def fetch_route_names(connection, starting_letter):
-    query = f"SELECT DISTINCT Route_Name FROM bus_routes WHERE Route_Name LIKE '{starting_letter}%' ORDER BY Route_Name"
-    route_names = pd.read_sql(query, connection)['Route_Name'].tolist()
+    query = "SELECT DISTINCT Route_Name FROM bus_routes WHERE Route_Name LIKE %s ORDER BY Route_Name"
+    route_names = pd.read_sql(query, connection, params=(f"{starting_letter}%",))['Route_Name'].tolist()
     return route_names
 
 # Function to fetch data from MySQL based on selected Route_Name and price sort order
 def fetch_data(connection, route_name, price_sort_order):
     price_sort_order_sql = "ASC" if price_sort_order == "Low to High" else "DESC"
-    query = f"SELECT * FROM bus_routes WHERE Route_Name = %s ORDER BY Star_Rating DESC, Price {price_sort_order_sql}"
-    df = pd.read_sql(query, connection, params=(route_name))
+    query = """
+    SELECT * FROM bus_routes 
+    WHERE Route_Name = %s 
+    ORDER BY Star_Rating DESC, Price {}
+    """.format(price_sort_order_sql)
+    df = pd.read_sql(query, connection, params=(route_name,))
     return df
 
 # Function to filter data based on Star_Rating and Bus_Type
